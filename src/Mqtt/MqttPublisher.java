@@ -1,7 +1,7 @@
 package Mqtt;
 
 public class MqttPublisher extends MqttBroker {
-    MqttPublisher() {}
+    public MqttPublisher() {}
 
     public void publish(String topic, String message) {
         super.publish(topic, message);

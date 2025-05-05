@@ -2,9 +2,14 @@ package RenewableEnergyProvider;
 
 import Common.EnergyRequest;
 import Mqtt.MqttPublisher;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 
 public class RenewableEnergyProvider {
     private final MqttPublisher mqttPublisher;
+    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public RenewableEnergyProvider(MqttPublisher mqttPublisher) {
         this.mqttPublisher = mqttPublisher;
@@ -19,9 +24,16 @@ public class RenewableEnergyProvider {
         EnergyRequest req = new EnergyRequest(kWh, System.currentTimeMillis());
 
         mqttPublisher.publish("RenewableEnergyProvider/request", req.toString());
+        System.out.println("Published energy request: " + req.toString());
     }
 
+    public void start() {
+        scheduler.scheduleAtFixedRate(this::publishRequest, 0, 10, TimeUnit.SECONDS);
+    }
 
-
-
+    public static void main(String[] args) {
+        MqttPublisher mqttPublisher = new MqttPublisher();
+        RenewableEnergyProvider renewableEnergyProvider = new RenewableEnergyProvider(mqttPublisher);
+        renewableEnergyProvider.start();
+    }
 }
