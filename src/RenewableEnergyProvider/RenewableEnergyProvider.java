@@ -32,8 +32,7 @@ public class RenewableEnergyProvider {
     }
 
     public static void main(String[] args) {
-        MqttPublisher mqttPublisher = new MqttPublisher();
-        RenewableEnergyProvider renewableEnergyProvider = new RenewableEnergyProvider(mqttPublisher);
+        RenewableEnergyProvider renewableEnergyProvider = new RenewableEnergyProvider(new MqttPublisher("RenewableEnergyProvider"));
         renewableEnergyProvider.start();
     }
 }

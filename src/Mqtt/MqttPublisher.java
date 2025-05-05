@@ -1,7 +1,9 @@
 package Mqtt;
 
-public class MqttPublisher extends MqttBroker {
-    public MqttPublisher() {}
+public class MqttPublisher extends MqttClient {
+    public MqttPublisher(String clientId) {
+        super(clientId);
+    }
 
     public void publish(String topic, String message) {
         super.publish(topic, message);
@@ -9,11 +11,5 @@ public class MqttPublisher extends MqttBroker {
 
     public void disconnect() {
         super.disconnect();
-    }
-
-    public static void main(String[] args) {
-        MqttPublisher publisher = new MqttPublisher();
-        publisher.publish("test", "Hello World!");
-        publisher.disconnect();
     }
 }

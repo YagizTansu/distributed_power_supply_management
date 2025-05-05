@@ -1,19 +1,17 @@
 package Mqtt;
 
-import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
-public class MqttBroker {
-    private MqttClient client;
+public class MqttClient {
+    protected org.eclipse.paho.client.mqttv3.MqttClient client;
     private final String broker = "tcp://localhost:1883";
-    private final String clientId = "JavaPublisher";
 
-    public MqttBroker() {
+    public MqttClient(String clientId) {
         try {
-            client = new MqttClient(broker, clientId, new MemoryPersistence());
+            client = new org.eclipse.paho.client.mqttv3.MqttClient(broker, clientId, new MemoryPersistence());
             MqttConnectOptions options = new MqttConnectOptions();
             options.setCleanSession(true);
             client.connect(options);
