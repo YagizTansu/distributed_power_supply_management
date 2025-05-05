@@ -61,12 +61,20 @@ public class PollutionSensor extends Thread {
     public List<Double> getAverageMeasurements() {
         return buffer.computingSlidedWindowAverage();
     }
-    
-    public double getLatestCO2Value() {
+
+    public double getAverageCO2Value() {
         List<Double> values = buffer.computingSlidedWindowAverage();
         if (values.isEmpty()) {
             return 0.0;
         }
-        return values.get(values.size() - 1);
+
+        // Calculate average of all window averages
+        double sum = 0.0;
+        for (Double value : values) {
+            sum += value;
+        }
+        return sum / values.size();
     }
+
+
 }

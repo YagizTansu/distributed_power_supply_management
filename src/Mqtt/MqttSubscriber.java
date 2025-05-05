@@ -1,10 +1,12 @@
 package Mqtt;
 
+import Common.EnergyRequest;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
-public abstract class MqttSubscriber extends MqttClient implements MqttCallback {
-    MqttSubscriber(String clientId) {
+public  class MqttSubscriber extends MqttClient {
+    public MqttSubscriber(String clientId) {
         super(clientId);
     }
 
@@ -16,6 +18,7 @@ public abstract class MqttSubscriber extends MqttClient implements MqttCallback 
         super.disconnect();
     }
 
-    @Override
-    public abstract void messageArrived(String topic, MqttMessage message);
+    public void setCallback(MqttCallback callback) {
+        client.setCallback(callback);
+    }
 }
