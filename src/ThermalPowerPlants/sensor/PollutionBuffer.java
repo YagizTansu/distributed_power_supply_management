@@ -4,51 +4,57 @@ import Common.Measurement;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 
 public class PollutionBuffer implements Buffer {
+    private final LinkedList<Measurement> buffer = new LinkedList<>();
+    private final List<Double> averages = new ArrayList<>();
+    private final CustomLock lock = new CustomLock();
 
-    private final Queue<Measurement> buffer;
-    int MAX_SIZE = 10;
-    int WINDOW_SIZE = 5;
-
-    public PollutionBuffer() {
-        buffer = new LinkedList<>();
-    }
-
+    private static final int WINDOW_SIZE = 8;
+    private static final int OVERLAP = 4; // 50%
 
     @Override
-    public void addMeasurement(Measurement measurement) {
-        if (buffer.size() >= MAX_SIZE) {
-            buffer.poll(); // Remove oldest
-        }
-        buffer.offer(measurement);
-    }
+    public void add(Measurement m) {
+        try {
+            lock.lock();
+            buffer.add(m);
 
-    @Override
-    public List<Double> readAndClearBuffer() {
-        List<Double> values = new ArrayList<>();
+            if (buffer.size() >= WINDOW_SIZE) {
+                computeAverage();
 
-        while (!buffer.isEmpty()) {
-            values.add(buffer.poll().getCo2Value());
-        }
-
-        return values;
-    }
-
-    public List<Double> computingSlidedWindowAverage() {
-
-        List<Double> averages = new ArrayList<>();
-        List<Measurement> list = new ArrayList<>(buffer);
-
-        for (int i = 0; i <= list.size() - WINDOW_SIZE; i++) {
-            double sum = 0.0;
-            for (int j = i; j < i + WINDOW_SIZE; j++) {
-                sum += list.get(j).getCo2Value();
+                for (int i = 0; i < OVERLAP; i++) {
+                    buffer.removeFirst();
+                }
             }
-            averages.add(sum / WINDOW_SIZE);
-        }
 
-        return averages;
+            lock.unlock();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private void computeAverage() {
+        double sum = 0;
+        for (Measurement m : buffer.subList(0, WINDOW_SIZE)) {
+            sum += m.getCo2Value();
+        }
+        averages.add(sum / WINDOW_SIZE);
+    }
+
+    @Override
+    public List<Measurement> readAllAndClean() {
+        List<Measurement> result = new ArrayList<>();
+        try {
+            lock.lock();
+            for (Double avg : averages) {
+                // Representing average as Measurement (timestamp = now)
+                result.add(new Measurement(System.currentTimeMillis(),avg));
+            }
+            averages.clear();
+            lock.unlock();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        return result;
     }
 }

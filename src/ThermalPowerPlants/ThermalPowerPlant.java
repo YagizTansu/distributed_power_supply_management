@@ -3,13 +3,16 @@ package ThermalPowerPlants;
 import Common.EnergyRequest;
 import Common.BidMessage;
 
+import Common.Measurement;
 import Mqtt.MqttSubscriber;
 import Mqtt.MqttPublisher;
-import ThermalPowerPlants.sensor.PollutionSensor;
+import ThermalPowerPlants.sensor.PollutionBuffer;
+import ThermalPowerPlants.sensor.SensorSimulator;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -17,16 +20,18 @@ public class ThermalPowerPlant implements MqttCallback {
     private final String id;
     private final MqttSubscriber mqttSubscriber;
     private final MqttPublisher mqttPublisher;
-    private final PollutionSensor pollutionSensor;
+    private PollutionBuffer pollutionBuffer ;
+    private SensorSimulator sensorSimulator;
     private boolean isBusy = false;
-    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
 
     public ThermalPowerPlant(String id) {
         this.id = id;
         this.mqttSubscriber = new MqttSubscriber(id + "_subscriber");
         this.mqttPublisher  = new MqttPublisher(id + "_publisher");
-        this.pollutionSensor = new PollutionSensor();
+
+        this.pollutionBuffer = new PollutionBuffer();
+        this.sensorSimulator = new SensorSimulator(pollutionBuffer, 1000);
     }
 
     public BidMessage calculateBid(EnergyRequest request){
@@ -43,8 +48,22 @@ public class ThermalPowerPlant implements MqttCallback {
         mqttSubscriber.subscribe("RenewableEnergyProvider/request");
     }
 
-    public void PublishCo2Message(){
-        mqttPublisher.publish("pollution/" + id, String.valueOf(pollutionSensor.getAverageCO2Value()));
+    public void  startsPublishPollution(){
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(1000);
+                    List<Measurement> co2Averages = pollutionBuffer.readAllAndClean();
+                    for (Measurement m : co2Averages) {
+                        String payload = String.format("{\"average\": %.2f, \"timestamp\": %d}",
+                                m.getCo2Value(), m.getTimestamp());
+                        mqttPublisher.publish("pollution/" + id,payload);
+                    }
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        }).start();
     }
 
     private void sendElectionMessageToNextPlant(BidMessage electionMsg) {
@@ -77,9 +96,8 @@ public class ThermalPowerPlant implements MqttCallback {
         subscribeRenewableEnergyProviderRequest();
 
         this.mqttSubscriber.setCallback(this);
-        this.pollutionSensor.start();
-
-        scheduler.scheduleAtFixedRate(this::PublishCo2Message, 0, 1, java.util.concurrent.TimeUnit.SECONDS);
+        this.sensorSimulator.start();
+        startsPublishPollution();
     }
 
     public static void main(String[] args) {
