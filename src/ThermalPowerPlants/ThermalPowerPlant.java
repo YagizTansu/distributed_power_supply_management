@@ -13,9 +13,6 @@ import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
 public class ThermalPowerPlant implements MqttCallback {
     private final String id;
     private final MqttSubscriber mqttSubscriber;
@@ -43,7 +40,6 @@ public class ThermalPowerPlant implements MqttCallback {
         return electionMsg;
     }
 
-
     public void subscribeRenewableEnergyProviderRequest() {
         mqttSubscriber.subscribe("RenewableEnergyProvider/request");
     }
@@ -59,7 +55,8 @@ public class ThermalPowerPlant implements MqttCallback {
                                 m.getCo2Value(), m.getTimestamp());
                         mqttPublisher.publish("pollution/" + id,payload);
                     }
-                } catch (InterruptedException e) {
+                } catch (Exception e) {
+                    System.err.println("Error publishing pollution: " + e.getMessage());
                     break;
                 }
             }
